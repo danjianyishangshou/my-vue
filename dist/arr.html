@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <!-- 这里取值的时候会调用JSON.stringify 会对数组中的对象取值 所以对象会收集依赖-->
+    <div id="app">
+    {{arr}}
+    </div>
+    <script src="vue.js"></script>
+    <script>
+        const vm=new Vue({
+            data:{
+            arr:[1,2,3,{a:1},['b','c']],//给数组本身增加dep 如果数组新增了某一项 可以出发dep更新
+            a:{a:1}// 给对象本身增加dep 如果对象新增了某一项属性可以出现dep更新
+            },
+        })
+
+        vm.$mount('#app')
+        // 下面两种操作 在原生vue中也不被监控
+        // 一种是在原生vue中监控，即使它没有data属性也不会执行
+        // vm.arr[0]=100//这种方式不会监控 只重写了数组方法
+        // vm.arr.length=100 //没有监听数组长度
+        setTimeout(()=>{
+            // vm.arr.push(100)//也可以这样写
+            // 新增的属性要使用$set才能更新视图
+            // vm.a.b=100
+            // vm.a.__ob__.dep.notify() // notify 强制渲染视图
+            vm.arr[4].push('d')
+        },1000)
+    </script>
+</body>
+</html>

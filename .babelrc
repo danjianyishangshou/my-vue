@@ -1,0 +1,6 @@
+{
+    "presets": [
+        // babel转译核心包
+        "@babel/preset-env"
+    ]
+}

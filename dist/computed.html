@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="app">
+        {{fullName}}
+    </div>
+    <script src="vue.js"></script>
+    <script>
+        const vm=new Vue({
+            el:'#app',
+            data:{
+                firstName:'张',
+                lastName:'三',
+            },
+            // 计算属性依赖的值发生改变才会重新执行用户的方法，计算属性中要维护一个dirty属性，默认计算属性不会立刻执行
+            // 计算属性就是一个defineProperty
+            // 计算属性也是一个watcher 模式渲染会创建一个渲染watcher'
+            computed:{
+                // 第一种写法
+                // fullName:{
+                //     get(){
+                //         // console.log('run'); 如果不存在watcher会多次调用 不会进行缓存
+                //         return this.firstName +' ' + this.lastName;
+                //     },
+                //     set(newVal){
+                //         console.log(newVal);
+                //     }
+                // },
+                // 第二种写法
+                fullName(){
+                    return this.firstName +'' + this.lastName;
+                }
+            }
+        })
+        setTimeout(()=>{
+                vm.firstName='李';//执行计算属性watcher 修改完后将dirty改为true
+                console.log(vm.fullName);
+        },1000)
+// 计算属性就是添加了锁 使用lazy  dirty 来控制计算属性是否立即执行
+// 创建一个记录好的状态变化的dep收集，每次dep发生变化 就会引发dep的重新收集，收集修改计算watcher中get的返回结果，同时修改计算watcher的时候要将渲染的watcher要放到dep中 此时脏值是可以通过的就会引发 渲染函数的执行 从而将最新的值 发送到页面上 
+// 如果依赖的状态没有发生变化脏值一直处于false 就进不去watcher.evaluate()/函数的执行 就不会引发栈结构的执行 计算watcher的执行
+    </script>
+</body>
+</html>

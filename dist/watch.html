@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="app">
+        {{firstName}}
+    </div>
+    <script src="vue.js"></script>
+    <script>
+        const vm=new Vue({
+            el:'#app',
+            data:{
+                firstName:'张',
+                lastName:'三',
+                age:18
+            },
+            // methods:{
+            //     fn(newVal,oldVal){
+            //     }
+            // },
+            // 三种写法
+            // 1,   直接写函数
+            // 2，数组写法 数组里面可以写函数也可以写methods里面的方法
+            // 3，vm.$watch
+            // watch:{
+            //     firstName(newVal,oldVal){
+            //         console.log(newVal,oldVal);
+            //     },
+                // lastName:[
+                //     (newVal,oldVal)=>{
+
+                //     },
+                //     (newVal,oldVal)=>{
+
+                //     }
+                // ],
+                // age:[
+                //     'fn',
+                //     (newVal,oldVal)=>{
+
+                //     }
+                // ]
+            // }
+        })
+        // 上面的方法 底层最终也会转化调用$watch方法
+        //   vm.$watch(‘firstName’,(newVal,oldVal)
+        vm.$watch(()=>vm.firstName,(newVal,oldVal)=>{
+            console.log(newVal,oldVal);
+        })
+        setTimeout(()=>{
+                vm.firstName='李';
+        },1000)
+
+    </script>
+</body>
+</html>

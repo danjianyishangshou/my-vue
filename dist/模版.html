@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="app" style="color:red;font-size: 20px;">
+        <span key="name">
+            姓名 :{{name}} --
+        </span>
+        <span key="age">
+            年龄:{{age}}
+        </span>
+    </div>
+    <script src="vue.js"></script>
+    <script>
+        // 响应式数据 数据变化会驱动视图
+        // 数据的取值与更改值
+        const vm=new Vue({
+            data:{
+                name:'zs',
+                age:18,
+                // 对象
+                address:{
+                    num:30,
+                    content:'上海'
+                },
+                // 数组
+                hobbies:['basketball','football']
+            },
+            // 挂载到实例属性el上
+            // el:'#app',
+    // template:`<div id='tmp'>123456</div>`
+        })
+        // 直接挂载到$mount
+        vm.$mount('#app')
+        // 1. 模版引擎 性能差 需要正则匹配替换 1.0没有引入虚拟DOM
+        // 2. vue2.0 引入虚拟DOM 数据发生变化比较虚拟DOM 最后更新需要更新的地方
+        // 3. 核心就是我们需要将 模版编程我们的js语法 通过js语法生成虚拟DOM
+
+        // 语法 转化利于babel 生成语法树 再重新组装代码编程新的语法
+        // 激昂template转换成render函数
+
+        // 需要做数据依赖收集 数据发生改变自动更新视图(观察者模式)
+        // nextTick 不是创建了一个异步任务，而是将这个任务维护到了队列中执行
+        vm.$nextTick(()=>{
+            console.log(app.innerHTML);//同步获取
+        })
+        // setTimeout(()=>{
+            vm.name='张三',
+            vm.age=19
+            // 手动渲染视图
+            // vm._update( vm._render())
+        // },1000)
+        vm.$nextTick(()=>{
+            console.log(app.innerHTML);//同步获取
+        })
+
+/**
+ * 1.将数据处理成响应式,initState(针对对象主要是增加defineProperty 正对数组就是重写方法)
+ * 2.模版编译:将你模版先转化成ast语法树,将ast语法树生成**render**方法
+ * 3.调用render函数 会进行取值操作,产生对应的虚拟DOM render(){ _c('div',null,_v(name))} 触发get方法
+ * 4.将虚拟DOM渲染成真实DOM
+*/
+
+//. vue收集依赖实现步骤
+//1.观察者模式实现依赖收集
+//2.异步更新策略
+//3.mixin的实现原理
+
+    </script>
+</body>
+</html>

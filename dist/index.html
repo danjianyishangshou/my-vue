@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script src="vue.js"></script>
+    <script>
+        // 响应式数据 数据变化会驱动视图
+        // 数据的取值与更改值
+        const vm=new Vue({
+            data:{
+                name:'zs',
+                age:18,
+                // 对象
+                address:{
+                    num:30,
+                    content:'上海'
+                },
+                // 数组
+                hobbies:['basketball','football']
+            },
+            template:`<div id='tmp'>{{name}}</div>`
+        })
+        vm._data.name='ls'//更改值 调用了observe中的sev
+        console.log(vm._data.name);//取值调用get
+    </script>
+</body>
+</html>
