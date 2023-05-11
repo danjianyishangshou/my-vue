@@ -1,73 +1,7 @@
 import { createElementVNode, createTextVNode } from './vdom'
 import Watcher from './observe/watcher'
-/**
- * 创建真实DOM
- * @param {string} vnode 
- * @returns 
- */
-function createElm(vnode) {
-    let { tag, data, key, children, text } = vnode
-    if (key) data.key = key
-    if (typeof tag === 'string') {
-        // 这里将真实节点与虚拟节点对应起来，
-        vnode.el = document.createElement(tag)
-        // 元素赋值属性
-        patchProps(vnode.el, data)
-        if (children) {
-            children.forEach(child => {
-                vnode.el.appendChild(createElm(child))
-            })
-        }
-    } else {
-        vnode.el = document.createTextNode(text)
-    }
-    return vnode.el
-}
-/**
- * 更新属性,给对应的节点添加属性
- */
-function patchProps(el, props) {
-    for (const key in props) {
-        if (key === 'style') {
-            for (const styleName in props.style) {
-                el.style[styleName] = props.style[styleName]
-            }
-        } else {
-            el.setAttribute(key, props[key])
-        }
-    }
-}
-/**
- * 将获取到的虚拟dom转化成真实dom
- *在vue2/3中 既有初始化功能也有更新功能
- * @param {string} oldVNode 老节点节点
- * @param {string} vnode  新节点
- */
-function patch(oldVNode, vnode) {
-    const isRelElement = oldVNode.nodeType//nodeType原生的方法 判断是不是原生节点 
-    /**
-     * nodeType 只读属性
-     * 如果节点是一个元素节点，nodeType 属性返回 1。
-     * 如果节点是属性节点, nodeType 属性返回 2。
-     * 如果节点是一个文本节点，nodeType 属性返回 3。
-     * 如果节点是一个注释节点，nodeType 属性返回 8。
-     * 整个文档（DOM树的根节点） nodeType 属性返回  9
-      */
-    if (isRelElement) {
-        // 真实元素
-        // 拿到真实元素的父级元素，生成新的dom 替换原来老的元素（删除老的元素，追加新的元素）
-        const elm = oldVNode
-        const parentElm = elm.parentNode
-        //创建dom
-        const newElm = createElm(vnode)
-        // 想插入新的节点到老的后面 再删除老的
-        parentElm.insertBefore(newElm, elm.nextSibling)//nextSibling是指的目标节点的后续节点
-        parentElm.removeChild(elm)
-        return newElm
-    } else {
-        // diff算法
-    }
-}
+import { patch } from './vdom/patch'
+
 export function initLifeCycle(Vue) {
     Vue.prototype._update = function (vnode) {
         const vm = this

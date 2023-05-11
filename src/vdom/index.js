@@ -24,4 +24,14 @@ function vnode({ vm, tag, key, data, children, text }) {
         vm, tag, key, data, children, text
         // 插槽 指令等
     }
-} 
+}
+
+/**
+ * 比较两个节点
+ * @param {*} vnode1 
+ * @param {*} vnode2 
+ * @returns 
+ */
+export function isSameVnode(vnode1, vnode2) {
+    return vnode1.tag === vnode2.tag && vnode1.key === vnode2.key
+}

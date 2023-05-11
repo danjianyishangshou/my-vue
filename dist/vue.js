@@ -609,6 +609,25 @@
     // 执行vm.$watch方法
     return vm.$watch(exprOrFn, hander);
   }
+  function initStateMixin(Vue) {
+    // nextTick混入mixin
+    Vue.prototype.$nextTick = nextTick;
+    /**
+    * watch函数 所有的写法最终都会走向
+    * @param {*} exprOrFn 
+    * @param {*} cb 
+    * @param {*} options 
+    */
+    Vue.prototype.$watch = function (exprOrFn, cb) {
+      var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+      console.log(exprOrFn, cb, options);
+      // 创建侦听watcher
+      // 侦听的对象变化了 直接调用cb
+      new Watcher(this, exprOrFn, {
+        user: true
+      }, cb);
+    };
+  }
 
   //! 利用栈结构来处理成树结构
   //.vue2正则匹配标签
@@ -905,6 +924,16 @@
   }
 
   /**
+   * 比较两个节点
+   * @param {*} vnode1 
+   * @param {*} vnode2 
+   * @returns 
+   */
+  function isSameVnode(vnode1, vnode2) {
+    return vnode1.tag === vnode2.tag && vnode1.key === vnode2.key;
+  }
+
+  /**
    * 创建真实DOM
    * @param {string} vnode 
    * @returns 
@@ -920,7 +949,7 @@
       // 这里将真实节点与虚拟节点对应起来，
       vnode.el = document.createElement(tag);
       // 元素赋值属性
-      patchProps(vnode.el, data);
+      patchProps(vnode.el, {}, data);
       if (children) {
         children.forEach(function (child) {
           vnode.el.appendChild(createElm(child));
@@ -934,14 +963,33 @@
   /**
    * 更新属性,给对应的节点添加属性
    */
-  function patchProps(el, props) {
-    for (var key in props) {
-      if (key === 'style') {
+  function patchProps(el) {
+    var oldProps = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    var props = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+    // 老的属性中有 新的没有要删除老的
+    var oldStyles = oldProps.style || {};
+    var newStyles = props.style || {};
+    for (var key in oldStyles) {
+      //老的样式中有的 新的没有的 则删除
+      if (!(key in newStyles)) {
+        el.style[key] = '';
+      }
+    }
+    for (var _key in oldProps) {
+      //老的属性中有
+      if (!(_key in props)) {
+        // 新的没有 删除属性
+        el.removeAttribute(_key);
+      }
+    }
+    for (var _key2 in props) {
+      //使用新的覆盖老的
+      if (_key2 === 'style') {
         for (var styleName in props.style) {
           el.style[styleName] = props.style[styleName];
         }
       } else {
-        el.setAttribute(key, props[key]);
+        el.setAttribute(_key2, props[_key2]);
       }
     }
   }
@@ -972,8 +1020,90 @@
       parentElm.insertBefore(newElm, elm.nextSibling); //nextSibling是指的目标节点的后续节点
       parentElm.removeChild(elm);
       return newElm;
+    } else {
+      // diff算法
+
+      // console.log(oldVNode, vnode);
+      // 1，两个节点不是同一个节点 直接删除老的节点 替换为新的节点
+      // 通过一个节点是同一个人节点 （判断节点的tag和节点key） 比较两个节点的属性是否存在差异，（复用老的节点，将差异的属性更新）
+      // 3，节点比较完毕后就需要比较两个节点的子节点
+      patchVnode(oldVNode, vnode);
     }
   }
+  /**
+   * 进行diff比较
+   * @param {*} oldVNode 
+   * @param {*} vnode 
+   * @returns 
+   */
+  function patchVnode(oldVNode, vnode) {
+    if (!isSameVnode(oldVNode, vnode)) {
+      //tag or key 有一个不同时 不是同一个节点
+      // 新节点替换老的节点
+      var _el = createElm(vnode);
+      oldVNode.el.parentNode.replaceChild(_el, oldVNode.el);
+      return _el;
+    }
+    // 文本的情况 tag or key 都相同的情况
+    var el = vnode.el = oldVNode.el; //复用老节点的元素
+    if (!oldVNode.tag) {
+      // 文本
+      if (oldVNode.text !== vnode.text) {
+        el.textContent = vnode.text; // 新文本覆盖老的文本
+      }
+    }
+    // 是标签 需要比对 标签的属性 
+    patchProps(el, oldVNode.data, vnode.data);
+
+    // 比较子节点 
+    //  只用一方有子节点 ，双方都有子节点
+    var oldChildren = oldVNode.children || [];
+    var newChildren = vnode.children || [];
+    if (oldChildren.length && newChildren.length) {
+      // 完整的diff算法
+      updateChildren(el, oldChildren, newChildren);
+    } else if (newChildren.length) {
+      // 没有老的只有新的
+      mountChildren(el, newChildren);
+    } else if (oldChildren.length) {
+      el.innerHTML = '';
+    }
+    return el;
+  }
+  /**
+   * 挂载新节点
+   * @param {*} el 
+   * @param {*} newChildren 
+   */
+  function mountChildren(el, newChildren) {
+    for (var i = 0; i < newChildren.length; i++) {
+      el.appendChild(createElm(newChildren[i]));
+    }
+  }
+  /**
+   * 都存在的时候更新children
+   * @param {*} el 
+   * @param {*} oldChildren 
+   * @param {*} newChildren 
+   */
+  function updateChildren(el, oldChildren, newChildren) {
+    // 为了比较两个子节点 的时候 减少性能消耗 有一些优化手段
+    //常用 操作数组 有push,shift.pop,unshift,reverse,sort
+    // vue中通过双指针的方式优化  新旧节点 个有一个首指针，一个尾指针 首位指针>=尾指针
+    // 第一步 先前前指针比较 有一方首指针 大于尾指针，就结束 执行插入或删除操作
+    // 第二步 如果前前指针不相等 且没有走第一步，就走尾尾指针比较  相等操作
+    // 第三步 如果前两步没有跳出比较 就执行 首尾指针比较 与尾首指针比较
+    // 指针
+    var oldEndIndex = oldChildren.length - 1,
+      newEndIndex = newChildren.length - 1;
+    // 节点
+    var oldStartVnode = oldChildren[0],
+      newStartVnode = newChildren[0],
+      oldEndVnode = oldChildren[oldEndIndex],
+      newEndVnode = newChildren[newEndIndex];
+    console.log(oldStartVnode, newStartVnode, oldEndVnode, newEndVnode);
+  }
+
   function initLifeCycle(Vue) {
     Vue.prototype._update = function (vnode) {
       var vm = this;
@@ -1089,25 +1219,37 @@
     // 默认调用init
     this._init(options);
   }
-  Vue.prototype.$nextTick = nextTick;
   initMixin(Vue); //扩展了init方法 解析模版生成AST树  生成响应式
   initLifeCycle(Vue); //在data、el、...、methods中扩展扩展是虚拟DOM生成真实DOM
+  initStateMixin(Vue); //实现了nextTick 与$watch
 
+  // ++++++++为了方便观察前后的虚拟节点++ 测试使用+++++++
+  var render1 = compileToFunction("\n<ul key='ul' id='123' style='color:red'>\n    <li id='a'>a</li>\n    <li id='b'>b</li>\n    <li id='c'>c</li>\n</ul>");
+  var vm1 = new Vue({
+    data: {
+      name: '张三'
+    }
+  });
+  var prevVnode = render1.call(vm1);
+  var el = createElm(prevVnode);
+  document.body.appendChild(el);
+  var render2 = compileToFunction("\n<ul key='ul' id='123' style='color:red;backgroundColor:pink;'>\n    <li id='a'>a</li>\n    <li id='b'>b</li>\n    <li id='c'>c</li>\n    <li id='d'>d</li>\n</ul>");
+  var vm2 = new Vue({
+    data: {
+      name: '李三'
+    }
+  });
+  var nextVnode = render2.call(vm2);
+
+  // let newEl = createElm(nextVnode)
+  // 不进行比较直接替换  diff算法是先比较差异后再替换
   /**
-   * watch函数 所有的写法最终都会走向
-   * @param {*} exprOrFn 
-   * @param {*} cb 
-   * @param {*} options 
-   */
-  Vue.prototype.$watch = function (exprOrFn, cb) {
-    var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
-    console.log(exprOrFn, cb, options);
-    // 创建侦听watcher
-    // 侦听的对象变化了 直接调用cb
-    new Watcher(this, exprOrFn, {
-      user: true
-    }, cb);
-  };
+  diff 比较是 层层比较，平级比对，深度优先
+   *  */
+  setTimeout(function () {
+    // el.parentNode.replaceChild(newEl, el)
+    patch(prevVnode, nextVnode);
+  }, 1000);
 
   return Vue;
 

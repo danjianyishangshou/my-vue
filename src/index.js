@@ -1,6 +1,10 @@
 import { initMixin } from './init'
 import { initLifeCycle } from './lifecycle'
-import Watcher, { nextTick } from './observe/watcher'
+import { initStateMixin } from './state'
+import { initGlobalAPI } from './globalAPI'
+import { compileToFunction } from './compiler'
+// 临时
+import { createElm, patch } from './vdom/patch'
 // 将所有的方法都耦合在一起
 /**
  * 创建vue构造函数
@@ -10,21 +14,43 @@ function Vue(options) {
     // 默认调用init
     this._init(options)
 }
-Vue.prototype.$nextTick = nextTick
+
 initMixin(Vue)//扩展了init方法 解析模版生成AST树  生成响应式
 initLifeCycle(Vue)//在data、el、...、methods中扩展扩展是虚拟DOM生成真实DOM
+initStateMixin(Vue)//实现了nextTick 与$watch
+initGlobalAPI(Vue)// 全局api的实现
 
+// ++++++++为了方便观察前后的虚拟节点++ 测试使用+++++++
+let render1 = compileToFunction(`
+<ul key='ul' id='123' style='color:red'>
+    <li id='a'>a</li>
+    <li id='b'>b</li>
+    <li id='c'>c</li>
+</ul>`)
+let vm1 = new Vue({ data: { name: '张三' } })
+let prevVnode = render1.call(vm1)
+let el = createElm(prevVnode)
+document.body.appendChild(el)
+
+let render2 = compileToFunction(`
+<ul key='ul' id='123' style='color:red;backgroundColor:pink;'>
+    <li id='a'>a</li>
+    <li id='b'>b</li>
+    <li id='c'>c</li>
+    <li id='d'>d</li>
+</ul>`)
+let vm2 = new Vue({ data: { name: '李三' } })
+let nextVnode = render2.call(vm2)
+
+
+// let newEl = createElm(nextVnode)
+// 不进行比较直接替换  diff算法是先比较差异后再替换
 /**
- * watch函数 所有的写法最终都会走向
- * @param {*} exprOrFn 
- * @param {*} cb 
- * @param {*} options 
- */
-Vue.prototype.$watch = function (exprOrFn, cb, options = {}) {
-    console.log(exprOrFn, cb, options);
-    // 创建侦听watcher
-    // 侦听的对象变化了 直接调用cb
-    new Watcher(this, exprOrFn, { user: true }, cb)
-}
+diff 比较是 层层比较，平级比对，深度优先
+ *  */
+setTimeout(() => {
+    // el.parentNode.replaceChild(newEl, el)
+    patch(prevVnode, nextVnode)
+}, 1000)
 
 export default Vue;
