@@ -930,7 +930,7 @@
    * @returns 
    */
   function isSameVnode(vnode1, vnode2) {
-    return vnode1.tag === vnode2.tag && vnode1.key === vnode2.key;
+    return vnode1.key === vnode2.key && vnode1.tag === vnode2.tag;
   }
 
   /**
@@ -969,13 +969,15 @@
     // 老的属性中有 新的没有要删除老的
     var oldStyles = oldProps.style || {};
     var newStyles = props.style || {};
+    //  赋值style属性
     for (var key in oldStyles) {
       //老的样式中有的 新的没有的 则删除
       if (!(key in newStyles)) {
         el.style[key] = '';
       }
     }
-    for (var _key in oldProps) {
+    // 赋值key id等属性
+    for (var _key in props) {
       //老的属性中有
       if (!(_key in props)) {
         // 新的没有 删除属性
@@ -1022,7 +1024,6 @@
       return newElm;
     } else {
       // diff算法
-
       // console.log(oldVNode, vnode);
       // 1，两个节点不是同一个节点 直接删除老的节点 替换为新的节点
       // 通过一个节点是同一个人节点 （判断节点的tag和节点key） 比较两个节点的属性是否存在差异，（复用老的节点，将差异的属性更新）
@@ -1037,6 +1038,7 @@
    * @returns 
    */
   function patchVnode(oldVNode, vnode) {
+    // console.log({ oldVNode, vnode });
     if (!isSameVnode(oldVNode, vnode)) {
       //tag or key 有一个不同时 不是同一个节点
       // 新节点替换老的节点
@@ -1046,15 +1048,16 @@
     }
     // 文本的情况 tag or key 都相同的情况
     var el = vnode.el = oldVNode.el; //复用老节点的元素
+
     if (!oldVNode.tag) {
       // 文本
       if (oldVNode.text !== vnode.text) {
         el.textContent = vnode.text; // 新文本覆盖老的文本
       }
     }
+
     // 是标签 需要比对 标签的属性 
     patchProps(el, oldVNode.data, vnode.data);
-
     // 比较子节点 
     //  只用一方有子节点 ，双方都有子节点
     var oldChildren = oldVNode.children || [];
@@ -1068,7 +1071,7 @@
     } else if (oldChildren.length) {
       el.innerHTML = '';
     }
-    return el;
+    // return el
   }
   /**
    * 挂载新节点
@@ -1094,14 +1097,117 @@
     // 第二步 如果前前指针不相等 且没有走第一步，就走尾尾指针比较  相等操作
     // 第三步 如果前两步没有跳出比较 就执行 首尾指针比较 与尾首指针比较
     // 指针
-    var oldEndIndex = oldChildren.length - 1,
-      newEndIndex = newChildren.length - 1;
+    var oldStartIndex = 0;
+    var newStartIndex = 0;
+    var oldEndIndex = oldChildren.length - 1;
+    var newEndIndex = newChildren.length - 1;
     // 节点
-    var oldStartVnode = oldChildren[0],
-      newStartVnode = newChildren[0],
-      oldEndVnode = oldChildren[oldEndIndex],
-      newEndVnode = newChildren[newEndIndex];
-    console.log(oldStartVnode, newStartVnode, oldEndVnode, newEndVnode);
+    var oldStartVnode = oldChildren[0];
+    var newStartVnode = newChildren[0];
+    var oldEndVnode = oldChildren[oldEndIndex];
+    var newEndVnode = newChildren[newEndIndex];
+    // 创建映射表
+    var map = makeIndexByKey(oldChildren);
+    // 有任何一方 首指针大于尾指针结束任务
+    /*为什么需要key
+    */
+    while (oldStartIndex <= oldEndIndex && newStartIndex <= newEndIndex) {
+      // debugger
+      // 如果遇到空值
+      if (!oldStartVnode) {
+        oldStartVnode = oldChildren[++oldStartIndex];
+      } else if (!oldEndVnode) {
+        oldEndVnode = oldChildren[--oldEndIndex];
+      }
+      // 处理头头相同的情况
+      else if (isSameVnode(oldStartVnode, newStartVnode)) {
+        patchVnode(oldStartVnode, newStartVnode);
+        oldStartVnode = oldChildren[++oldStartIndex];
+        newStartVnode = newChildren[++newStartIndex];
+      }
+      // 处理尾尾相同的情况
+      else if (isSameVnode(oldEndVnode, newEndVnode)) {
+        patchVnode(oldEndVnode, newEndVnode);
+        oldEndVnode = oldChildren[--oldEndIndex];
+        newEndVnode = newChildren[--newEndIndex];
+      }
+      // 处理首尾交叉的情况
+      else if (isSameVnode(oldEndVnode, newStartVnode)) {
+        // 处理 null 元素
+        if (oldStartVnode == null) {
+          oldEndVnode = oldChildren[--oldEndIndex];
+        } else {
+          // 首尾比较
+          patchVnode(oldEndVnode, newStartVnode);
+          el.insertBefore(oldEndVnode.el, oldStartVnode.el);
+          oldEndVnode = oldChildren[--oldEndIndex];
+        }
+        newStartVnode = newChildren[++newStartIndex];
+      }
+      // 处理尾首交叉的情况
+      else if (isSameVnode(oldStartVnode, newEndVnode)) {
+        // 处理 null 元素
+        if (oldEndVnode == null) {
+          oldStartVnode = oldChildren[++oldStartIndex];
+        } else {
+          // 尾首比较
+          patchVnode(oldStartVnode, newEndVnode);
+          el.insertBefore(oldStartVnode.el, oldEndVnode.el.nextSibling);
+          oldStartVnode = oldChildren[++oldStartIndex];
+        }
+        newEndVnode = newChildren[--newEndIndex];
+      } else {
+        // 在给动态列表添加key的时候，要尽量避免用索引，因为索引前后都是从0开始 可能会发生错误复用
+        // 乱序比对
+        // 根据拉奥的列表做一个映射关系 用新的去找，找到则移动，找不到则添加，最后多余的就删除
+        var moveIndex = map[newStartVnode.key]; // 如果拿到说明是要移动的索引
+        if (moveIndex !== undefined) {
+          var moveVnode = oldChildren[moveIndex]; //找到节点复用
+          el.insertBefore(moveVnode.el, oldStartVnode.el); //将找到的节点放到指针前面
+          oldChildren[moveIndex] = undefined; // 移除这个节点 表示这个节点已经被移动
+          patchVnode(moveVnode, newStartVnode);
+        } else {
+          // 如果找不到创建并插入
+          el.insertBefore(createElm(newStartVnode), oldStartVnode.el);
+        }
+        newStartVnode = newChildren[++newStartIndex];
+      }
+    }
+    // 超过的节点插入到节点中
+    if (newStartIndex <= newEndIndex) {
+      for (var i = newStartIndex; i <= newEndIndex; i++) {
+        var childEl = createElm(newChildren[i]);
+        // 可能是向后追加 也可能是向前 追加
+        // 判断有没有下一个指针
+        var anchor = newChildren[newEndIndex + 1] ? newChildren[newEndIndex + 1].el : null;
+        // el.appendChild(childEl)
+        el.insertBefore(childEl, anchor);
+      }
+    }
+    // 比老节点少元素
+    if (oldStartIndex <= oldEndIndex) {
+      for (var _i = oldStartIndex; _i <= oldEndIndex; _i++) {
+        // 存在节点值被置空的情况
+        if (oldChildren[_i]) {
+          var _childEl = oldChildren[_i].el;
+          el.removeChild(_childEl);
+        }
+      }
+    }
+    // 为了比较子节点 提高性能 做优化手段
+    // 如果批量像页面中修改内容 浏览器会自动优化
+    //. 一定时间频繁渲染DOM 浏览器优化会合并成一次渲染
+  }
+
+  /**
+    * 生成虚拟节点映射表
+    */
+  function makeIndexByKey(children) {
+    var map = {};
+    children.forEach(function (child, index) {
+      map[child.key] = index;
+    });
+    return map;
   }
 
   function initLifeCycle(Vue) {
@@ -1224,7 +1330,7 @@
   initStateMixin(Vue); //实现了nextTick 与$watch
 
   // ++++++++为了方便观察前后的虚拟节点++ 测试使用+++++++
-  var render1 = compileToFunction("\n<ul key='ul' id='123' style='color:red'>\n    <li id='a'>a</li>\n    <li id='b'>b</li>\n    <li id='c'>c</li>\n</ul>");
+  var render1 = compileToFunction("\n<ul key='ul' id='123' style='color:red'>\n    <li key='a'>a</li>\n    <li key='b'>b</li>\n    <li key='c'>c</li>\n    <li key='d'>d</li>\n</ul>");
   var vm1 = new Vue({
     data: {
       name: '张三'
@@ -1233,7 +1339,7 @@
   var prevVnode = render1.call(vm1);
   var el = createElm(prevVnode);
   document.body.appendChild(el);
-  var render2 = compileToFunction("\n<ul key='ul' id='123' style='color:red;backgroundColor:pink;'>\n    <li id='a'>a</li>\n    <li id='b'>b</li>\n    <li id='c'>c</li>\n    <li id='d'>d</li>\n</ul>");
+  var render2 = compileToFunction("\n<ul key='ul' id='123' style='color:red;backgroundColor:pink;'>\n    <li key='p'>p</li>\n    <li key='m'>m</li>\n    <li key='a'>a</li>\n    <li key='b'>b</li>\n    <li key='c'>c</li>\n    <li key='q'>q</li>\n</ul>");
   var vm2 = new Vue({
     data: {
       name: '李三'

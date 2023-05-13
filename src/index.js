@@ -23,9 +23,10 @@ initGlobalAPI(Vue)// 全局api的实现
 // ++++++++为了方便观察前后的虚拟节点++ 测试使用+++++++
 let render1 = compileToFunction(`
 <ul key='ul' id='123' style='color:red'>
-    <li id='a'>a</li>
-    <li id='b'>b</li>
-    <li id='c'>c</li>
+    <li key='a'>a</li>
+    <li key='b'>b</li>
+    <li key='c'>c</li>
+    <li key='d'>d</li>
 </ul>`)
 let vm1 = new Vue({ data: { name: '张三' } })
 let prevVnode = render1.call(vm1)
@@ -34,10 +35,12 @@ document.body.appendChild(el)
 
 let render2 = compileToFunction(`
 <ul key='ul' id='123' style='color:red;backgroundColor:pink;'>
-    <li id='a'>a</li>
-    <li id='b'>b</li>
-    <li id='c'>c</li>
-    <li id='d'>d</li>
+    <li key='p'>p</li>
+    <li key='m'>m</li>
+    <li key='a'>a</li>
+    <li key='b'>b</li>
+    <li key='c'>c</li>
+    <li key='q'>q</li>
 </ul>`)
 let vm2 = new Vue({ data: { name: '李三' } })
 let nextVnode = render2.call(vm2)
