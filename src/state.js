@@ -1,5 +1,5 @@
 import { observe } from './observe/index'
-import Watcher from './observe/watcher';
+import Watcher, { nextTick } from './observe/watcher'
 import Dep from './observe/dep'
 // 项目初始化
 export function initState(vm) {
@@ -121,4 +121,21 @@ function createWatcher(vm, exprOrFn, hander) {
     }
     // 执行vm.$watch方法
     return vm.$watch(exprOrFn, hander)
+}
+
+export function initStateMixin(Vue) {
+    // nextTick混入mixin
+    Vue.prototype.$nextTick = nextTick
+    /**
+ * watch函数 所有的写法最终都会走向
+ * @param {*} exprOrFn 
+ * @param {*} cb 
+ * @param {*} options 
+ */
+    Vue.prototype.$watch = function (exprOrFn, cb, options = {}) {
+        console.log(exprOrFn, cb, options);
+        // 创建侦听watcher
+        // 侦听的对象变化了 直接调用cb
+        new Watcher(this, exprOrFn, { user: true }, cb)
+    }
 }
