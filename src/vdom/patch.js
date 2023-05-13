@@ -1,4 +1,13 @@
 import { isSameVnode } from './index'
+function createComponent(vnode) {
+    let i = vnode.data
+    if ((i = i.hook) && (i = i.init)) {
+        i(vnode)//初始化组件 找到init方法
+    }
+    if (vnode.componentInstance) {
+        return true// 说明是组件
+    }
+}
 /**
  * 创建真实DOM
  * @param {string} vnode 
@@ -8,6 +17,12 @@ export function createElm(vnode) {
     let { tag, data, key, children, text } = vnode
     if (key) data.key = key
     if (typeof tag === 'string') {
+        // 创建真实元素也要区分是组件还是元素
+        if (createComponent(vnode)) { // vnode.componentInstance.$el
+            // 组件
+            return vnode.componentInstance.$el
+        }
+
         // 这里将真实节点与虚拟节点对应起来，
         vnode.el = document.createElement(tag)
         // 元素赋值属性
@@ -59,6 +74,10 @@ export function patchProps(el, oldProps = {}, props = {}) {
  * @param {string} vnode  新节点
  */
 export function patch(oldVNode, vnode) {
+    if (!oldVNode) {
+        // 如果oldVNode不存在 这就是组件的挂载
+        return createElm(vnode) //vm.$el 对应的就是组件渲染的结果
+    }
     const isRelElement = oldVNode.nodeType//nodeType原生的方法 判断是不是原生节点 
     /**
      * nodeType 只读属性

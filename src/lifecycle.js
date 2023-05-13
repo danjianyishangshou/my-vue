@@ -8,7 +8,14 @@ export function initLifeCycle(Vue) {
         const el = vm.$el
         // 将获取到的虚拟dom转化成真实dom
         // 在vue2/3中 既有初始化功能也有更新功能
-        vm.$el = patch(el, vnode)
+        const prevVnode = vm._vnode//旧的vnode
+        vm._vnode = vnode //把组件第一次产生的虚拟节点保存到_vnode上
+        if (prevVnode) {//如果存在则之前渲染过
+            // diff算法比较
+            vm.$el = patch(prevVnode, vnode)
+        } else {// 首次渲染
+            vm.$el = patch(el, vnode)
+        }
     }
     // _c('div',{},...children)
     Vue.prototype._c = function () {
@@ -49,3 +56,23 @@ export function mountComponent(vm, el) {//这里的el是通过querySelector处�
  * 4，后续每次数据更新不再需要重新生成解析ast树 而是只执行render函数
  *      render 函数会产生虚拟节点（使用响应式数据）根据虚拟节点生成真正的DOM节点
  */
+
+
+/**
+ * callHook 函数用于触发组件生命周期钩子函数。
+ * 该函数接收一个组件实例 vm 和一个生命周期钩子名 hook，然后从组件选项对象中找到对应钩子配置值，遍历这个数组，并依次调用存储在数组中的每个生命周期钩子函数。
+ * @param {*} vm 组件
+ * @param {*} hook 生命周期
+ */
+export function callHook(vm, hook) {
+    const handlers = vm.$options[hook]
+    if (handlers) {
+        for (let i = 0, j = handlers.length; i < j; i++) {
+            try {
+                handlers[i].call(vm)
+            } catch (e) {
+                handleError(e, vm, `${hook} hook`)
+            }
+        }
+    }
+}

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="app"></div>
+    <div id="root">
+    </div>
+    <script src="vue.js"></script>
+    <script>
+        // 根组件 
+        // 组件的三大特性 自定义标签 组件里面有自己的属性和组件 组件的插槽(web-component)
+        // 声明组件 全局组件
+        Vue.component('my-button',{//全局组件 
+            template:`<button>点击全局</button>`
+        })
+
+        // 内部调用了 Vue.extend方法
+        // 创建一个新的组件实例 在模版中直接使用
+        // Vue.component('my-button', Vue.extend({//全局组件 
+        //     template:`<button>点击</button>`
+        // }))
+    // 实现Vue.extend方法 创建一个构造函数
+    // 模版->ast语法树==》生成虚拟节点==》需要对元素再次分类 分成组件的虚拟节点
+    // 在处理属性的维护 component ：{my-button}.__proto__my-button  自己有用自己的 没有向上层找
+    let Sub=Vue.extend({
+        template:`<button>点击子<my-button></my-button></button>`,
+        components:{
+            'my-button':{//全局组件 
+                template:`<button>点击1</button>`
+        }}
+        }
+    )
+    new Sub().$mount('#root')// 会创建一个子组件的watcher
+    // console.log(new Vue())
+        // const vm=new Vue({
+        //     el:'#app',
+        //     data(){
+        //         return {name:'zs'}
+        //     },
+        //     components:{
+        //         'my-button':{// 先找子组件后找父组件  存在继承关系
+        //             template:`<button>子组件:点击</button>`
+        //         }
+        //         // 'my-button':Vue.extend({// 先找子组件后找父组件  存在继承关系
+        //         //     template:`<button>子组件:点击</button>`
+        //         // })
+        //     }
+        // })
+        // vm.$mount('#app')
+    </script>
+</body>
+</html>
